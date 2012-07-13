@@ -32,17 +32,17 @@ OptionParser.new { |opts|
 #### connectable ####
 def k_leq_connectable(w, u, k)
   for i in 1..k
-    return i if k_connectable(w, u, i) == 1
+    return i if k_connectable(w, u, i)
   end
   return 0
 end
 
 def k_connectable(w, u, k)
-  return 0 if w.size < k || u.size < k
+  return false if w.size < k || u.size < k
   tail = w.tail(k)
   head = u.head(k)
-  return 1 if head.index(tail) != nil
-  return 0
+  return true if head.index(tail) != nil
+  return false
 end
 
 ################################################################################
@@ -77,14 +77,7 @@ class MyLongestPath
     @k = k
     @ws = open(file).read.split("\n")
     @n = @ws.size
-
-    @adj = Array.new(@n){ |i| Array.new(@n){ |j| 0 }}
-    for s in 0..@n-1
-      for t in 0..@n-1
-        next if s == t
-        @adj[s][t] = k_leq_connectable(@ws[s], @ws[t], @k)
-      end
-    end
+    @adj = Array.new(@n){ |s| Array.new(@n){ |t| k_leq_connectable(@ws[s], @ws[t], @k) }}
   end
 
   #### hamiltonian ####
@@ -130,12 +123,12 @@ class MyHamiltonian
   def ordering
     # out degree
     @od = Hash.new(0)
-    for s in 0..@n-1
-      for t in 0..@n-1
-        next if s == t
+    for s in 0..@n-2
+      for t in s+1..@n-1
         w = @ws[s]
         u = @ws[t]
         @od[w] += 1 if k_leq_connectable(w, u, @k) > 0
+        @od[u] += 1 if k_leq_connectable(u, w, @k) > 0
       end
     end
 
@@ -145,7 +138,6 @@ class MyHamiltonian
 
   #### init ####
   def init
-    @ham.clear
     for s in 0..@n-1
       for t in 0..@n-1
         next if s == t
@@ -155,46 +147,38 @@ class MyHamiltonian
     end
   end
 
-  #### reachability : [s, w] is reachable := \forall t \in w, there exists a directed path s -> t ####
+  #### reachability ####
+  # [s, w] is reachable iff
+  # \forall t \in w, a directed path s -> t exists
   def rec(s, w)
-    return 0 if w == [] # definition
+    return false if w == [] # by definition
+    ts = w.clone
 
-    ss = [s]      # reachable nodes
-    ts = w.clone  # unknown nodes
+    ns = [ s ]
+    while (n = ns.shift) != nil
+      return true if ts.size == 0
 
-    while (s = ss.shift)
-      h = nil
-      while ts.size > 0
-        break if h == ts[0]
-
-        t = ts.shift
-        if @adj[s][t] > 0
-          ss.push(t)
-          h = nil
-        else
-          h = t if h == nil
-          ts.push(t)
-        end
+      r = []
+      ts.each do |t|
+        r.push(t) if @adj[n][t] > 0
       end
-    end
 
-    return 1 if ts.size == 0
-    return 0
+      ts -= r
+      ns += r
+    end
+    return false
   end
 
-  #### ham(s, w) : a sub-hamiltonian from s for a sub-nodeset w ####
+  #### ham(s, w) = a sub-hamiltonian from s for a sub-nodeset w ####
   def ham(s, w)
     key = [s, w]
-    return @ham[key] if @ham[key] != nil      # avoid the same computation
-    return (@ham[key] = []) if rec(s, w) == 0 # skip if unreachable
+    return @ham[key] if @ham[key] != nil   # avoid the same computation
+    return (@ham[key] = []) if !rec(s, w)  # skip if unreachable
 
-    # recursion
     w.each do |t|
-      u = w - [t]
-      return (@ham[key] = [s, t, u]) if @adj[s][t] > 0 && ham(t, u) != []
+      return (@ham[key] = [s, t, w-[t]]) if @adj[s][t] > 0 && ham(t, w-[t]) != []
     end
-
-    return (@ham[key] = []) # no hamiltonian
+    return (@ham[key] = [])
   end
 
   #### hamiltonian ####

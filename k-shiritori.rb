@@ -5,6 +5,7 @@
 ################################################################################
 @file = "hoge.txt"
 @k = 3
+@ham = true
 
 ################################################################################
 # Arguments
@@ -19,8 +20,8 @@ OptionParser.new { |opts|
   opts.on("-f [INPUT]", "file name"){ |f|
     @file = f
   }
-  opts.on("-k [int]", "k-leq-shiritori"){ |f|
-    @k = f.to_i
+  opts.on("-l", "--longest", "solve by Longest path method"){
+    @ham = false
   }
   # parse
   opts.parse!(ARGV)
@@ -209,10 +210,14 @@ end
 ################################################################################
 # main
 ################################################################################
-puts "<-- Hamiltonian -->"
-g = MyHamiltonian.new(@file, @k)
-g.get_hamiltonian
+if @ham
+  puts "<-- Hamiltonian -->"
+  g = MyHamiltonian.new(@file, @k)
+  g.get_hamiltonian
+end
 
-puts "<-- Longest path -->"
-g = MyLongestPath.new(@file, @k)
-g.get_longestpath
+if !@ham
+  puts "<-- Longest path -->"
+  g = MyLongestPath.new(@file, @k)
+  g.get_longestpath
+end

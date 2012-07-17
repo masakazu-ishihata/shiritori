@@ -92,7 +92,7 @@ class MyLongestPath
       break if sol.size == @n # is the longest path
 
       # add child solutions to sols
-      s = sol.tail(1)[0] # the last node
+      s = sol.last
       for t in 0..@n-1
         sols.push(sol + [t]) if @adj[s][t] > 0 && sol.index(t) == nil
       end
